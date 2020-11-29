@@ -1,5 +1,5 @@
 # StallionDotAi.github.io
-Users' created AIQOM apps
+A selcted collection of Apss created by AIQOM users
 |  **APP**                                              
 |-------------------------------------------------------|
 [Handwritten Digit Recognizer](StallionDotAi.github.io)            
