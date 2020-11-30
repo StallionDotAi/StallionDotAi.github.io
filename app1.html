@@ -1,0 +1,193 @@
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.20/lodash.min.js"></script>
+</head>
+
+<body>
+  <h1>Handwriting Classifier!</h1>
+  <canvas id="canvas" width="280" height="280" style="position:absolute;top:100;left:100;border:8px solid;"></canvas>
+  <img id="canvasimg" style="position:absolute;top:10%;left:52%;width=280;height=280;display:none;">
+  <input type="button" value="classify" id="sb" size="48" style="position:absolute;top:400;left:100;">
+  <input type="button" value="clear" id="cb" size="23" style="position:absolute;top:400;left:180;">
+</body>
+
+<script>
+//as an web app
+function MNISTConfig(){
+  return{imgChannel:1,
+    imgWidth: 28,
+    imgHeight: 28,
+    dbName: "embeddings",
+    dbVersion:3,
+    storeName:"MNIST"
+  }
+}
+//config
+config = MNISTConfig()
+
+
+
+
+const imgChannel = config["imgChannel"];
+const imgWidth = config["imgWidth"];
+const imgHeight= config["imgHeight"];
+const dbName = config["dbName"];
+const dbVersion = config["dbVersion"];
+const storeName = config["storeName"];
+
+
+var model; 
+var canvas, ctx, saveButton, clearButton;
+var pos = {x:0, y:0};
+var rawImage;
+function setPosition(e){
+	pos.x = e.clientX-100;
+	pos.y = e.clientY-100;
+}
+    
+function draw(e) {
+	if(e.buttons!=1) return;
+	ctx.beginPath();
+	ctx.lineWidth = 24;
+	ctx.lineCap = 'round';
+	ctx.strokeStyle = 'white';
+	ctx.moveTo(pos.x, pos.y);
+	setPosition(e);
+	ctx.lineTo(pos.x, pos.y);
+	ctx.stroke();
+	rawImage.src = canvas.toDataURL('image/png');
+}
+    
+function erase() {
+	ctx.fillStyle = "black";
+	ctx.fillRect(0,0,280,280);
+}
+    
+function save00() {
+	var raw = tf.browser.fromPixels(rawImage,1);
+	var resized = tf.image.resizeBilinear(raw, [28,28]);
+	var tensor = resized.expandDims(0);
+    var prediction = model.predict(tensor);s
+    var pIndex = tf.argMax(prediction, 1).dataSync();
+    
+	alert(pIndex);
+}
+
+async function save0(){
+    fileURL = rawImage.src;
+    var data = await getImageValue(fileURL);
+const predictedClass = tf.tidy(()=>{
+  x0=tf.tensor(data["data"],[data["width"],data["height"],4]);//RGBALPHA and normalize (Assume input is 0 to 255) #TODO: normalize
+  x = x0.slice([0,0,0],[data["width"],data["height"],imgChannel]);//RGB
+  x = tf.image.resizeNearestNeighbor(x, [imgWidth,imgHeight], true);//RGB
+  x=x.expandDims(0).toFloat().div(127).sub(1)
+  x = truncatedMobileNet.predict(x);
+  x = x.dataSync();
+  x = Array.from(x);
+  x = tf.tensor(x).expandDims(0);
+  p = model.predict(x);
+  return p.as1D().argMax();
+
+});
+    const classId = (await predictedClass.data())[0];
+    alert(await label2intInv[classId])
+    return await label2intInv[classId];//await label2intInv[classId];
+}
+
+async function save(){
+    fileURL = rawImage.src;
+    var data = await getImageValue(fileURL);
+    label2intInv = model.getUserDefinedMetadata()['label2intInv']
+
+const predictedClass = tf.tidy(()=>{
+  x0=tf.tensor(data["data"],[data["width"],data["height"],4]);//RGBALPHA and normalize (Assume input is 0 to 255) #TODO: normalize
+  x = x0.slice([0,0,0],[data["width"],data["height"],imgChannel]);//RGB
+  x = tf.image.resizeNearestNeighbor(x, [imgWidth,imgHeight], true);//RGB
+  x=x.expandDims(0).toFloat().div(127).sub(1)
+//  x = truncatedMobileNet.predict(x);
+  x = x.dataSync();
+  x = Array.from(x);
+  x = tf.tensor3d(x,[28,28,1]).expandDims(0);
+  p = model.predict(x);
+  return p.as1D().argMax();
+
+});
+    const classId = (await predictedClass.data())[0];
+    alert(await label2intInv[classId])
+    return await label2intInv[classId];//await label2intInv[classId];
+}
+    
+async function initApp() {
+	canvas = document.getElementById('canvas');
+	rawImage = document.getElementById('canvasimg');
+	ctx = canvas.getContext("2d");
+	ctx.fillStyle = "black";
+	ctx.fillRect(0,0,280,280);
+	canvas.addEventListener("mousemove", draw);
+	canvas.addEventListener("mousedown", setPosition);
+	canvas.addEventListener("mouseenter", setPosition);
+	saveButton = document.getElementById('sb');
+	saveButton.addEventListener("click", save);
+	clearButton = document.getElementById('cb');
+    clearButton.addEventListener("click", erase);
+    modelURL = "indexeddb://my-model-1"
+    model = await loadModel(modelURL)
+}
+
+async function run(){
+  initApp();
+}
+
+async function loadModel(modelURL){
+  truncatedMobileNet = await loadTruncatedMobileNet();
+    let model= await tf.loadLayersModel(modelURL);
+    return model
+}
+
+async function loadTruncatedMobileNet() {
+  const mobilenet = await tf.loadLayersModel(
+    'https://storage.googleapis.com/' +
+        'tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json');
+
+  const layer = mobilenet.getLayer(
+      'conv_pw_13_relu');
+  return tf.model({
+    inputs: mobilenet.inputs,
+    outputs: layer.output
+  });
+}
+function getImageValue(url) {
+  return new Promise(async(resolve) => {
+      //const response = await fetch(url);
+      //const blob = await response.blob();
+  
+      var img = new Image();
+      //img.crossOrigin = "anonymous";
+      img.onload = function() {
+          getImageData(img)
+      
+          
+  function getImageData(img){
+      var canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var context = canvas.getContext('2d');
+      context.drawImage(img, 0, 0);
+      var imageData = context.getImageData(0,0,img.width,img.height);
+      var data = imageData.data;
+
+      resolve({'data':Array.from(data),"width":img.width,"height":img.height});
+  }
+}
+img.src=url;
+})
+}
+run()
+
+
+</script>
+
+</html>
