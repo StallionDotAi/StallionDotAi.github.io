@@ -7,8 +7,9 @@
 </head>
 
 <body>
-  <h1>Handwriting Classifier!</h1>
-  <canvas id="canvas" width="280" height="280" style="position:absolute;top:100;left:100;border:8px solid;"></canvas>
+  <h1>Handwritten Digits Classifier!</h1>
+  <h2>Classify handwritten digits between 0-5</h2>
+    <canvas id="canvas" width="280" height="280" style="position:absolute;top:100;left:100;border:8px solid;"></canvas>
   <img id="canvasimg" style="position:absolute;top:10%;left:52%;width=280;height=280;display:none;">
   <input type="button" value="classify" id="sb" size="48" style="position:absolute;top:400;left:100;">
   <input type="button" value="clear" id="cb" size="23" style="position:absolute;top:400;left:180;">
@@ -34,12 +35,11 @@ config = MNISTConfig()
 const imgChannel = config["imgChannel"];
 const imgWidth = config["imgWidth"];
 const imgHeight= config["imgHeight"];
-const dbName = config["dbName"];
-const dbVersion = config["dbVersion"];
-const storeName = config["storeName"];
 
 
 var model; 
+var label2intInv;
+
 var canvas, ctx, saveButton, clearButton;
 var pos = {x:0, y:0};
 var rawImage;
@@ -66,41 +66,9 @@ function erase() {
 	ctx.fillRect(0,0,280,280);
 }
     
-function save00() {
-	var raw = tf.browser.fromPixels(rawImage,1);
-	var resized = tf.image.resizeBilinear(raw, [28,28]);
-	var tensor = resized.expandDims(0);
-    var prediction = model.predict(tensor);s
-    var pIndex = tf.argMax(prediction, 1).dataSync();
-    
-	alert(pIndex);
-}
-
-async function save0(){
-    fileURL = rawImage.src;
-    var data = await getImageValue(fileURL);
-const predictedClass = tf.tidy(()=>{
-  x0=tf.tensor(data["data"],[data["width"],data["height"],4]);//RGBALPHA and normalize (Assume input is 0 to 255) #TODO: normalize
-  x = x0.slice([0,0,0],[data["width"],data["height"],imgChannel]);//RGB
-  x = tf.image.resizeNearestNeighbor(x, [imgWidth,imgHeight], true);//RGB
-  x=x.expandDims(0).toFloat().div(127).sub(1)
-  x = truncatedMobileNet.predict(x);
-  x = x.dataSync();
-  x = Array.from(x);
-  x = tf.tensor(x).expandDims(0);
-  p = model.predict(x);
-  return p.as1D().argMax();
-
-});
-    const classId = (await predictedClass.data())[0];
-    alert(await label2intInv[classId])
-    return await label2intInv[classId];//await label2intInv[classId];
-}
-
 async function save(){
     fileURL = rawImage.src;
     var data = await getImageValue(fileURL);
-    label2intInv = model.getUserDefinedMetadata()['label2intInv']
 
 const predictedClass = tf.tidy(()=>{
   x0=tf.tensor(data["data"],[data["width"],data["height"],4]);//RGBALPHA and normalize (Assume input is 0 to 255) #TODO: normalize
@@ -133,17 +101,18 @@ async function initApp() {
 	saveButton.addEventListener("click", save);
 	clearButton = document.getElementById('cb');
     clearButton.addEventListener("click", erase);
-    modelURL = "indexeddb://my-model-1"
+    modelURL = "https://stalliondotai.github.io/model/MNIST05.json"
     model = await loadModel(modelURL)
+
 }
 
-async function run(){
-  initApp();
-}
+
 
 async function loadModel(modelURL){
   truncatedMobileNet = await loadTruncatedMobileNet();
-    let model= await tf.loadLayersModel(modelURL);
+    model= await tf.loadLayersModel(modelURL);
+    label2intInv = await model.getUserDefinedMetadata()['label2intInv']
+
     return model
 }
 
@@ -184,6 +153,10 @@ function getImageValue(url) {
 }
 img.src=url;
 })
+}
+
+async function run(){
+  initApp();
 }
 run()
 
