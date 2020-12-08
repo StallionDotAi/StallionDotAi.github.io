@@ -84,7 +84,11 @@ const predictedClass = tf.tidy(()=>{
 
 });
     const classId = (await predictedClass.data())[0];
-    alert(await label2intInv[classId])
+    //alert(await label2intInv[classId])
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "red";
+    ctx.textAlign = "center";
+    ctx.fillText(await label2intInv[classId], canvas.width/2, 50); 
     return await label2intInv[classId];//await label2intInv[classId];
 }
     
@@ -101,7 +105,7 @@ async function initApp() {
 	saveButton.addEventListener("click", save);
 	clearButton = document.getElementById('cb');
     clearButton.addEventListener("click", erase);
-    modelURL = "https://stalliondotai.github.io/model/MNIST05.json"
+    modelURL = "./model/MNIST09.json"
     model = await loadModel(modelURL)
 
 }
@@ -111,7 +115,7 @@ async function initApp() {
 async function loadModel(modelURL){
   truncatedMobileNet = await loadTruncatedMobileNet();
     model= await tf.loadLayersModel(modelURL);
-    label2intInv = await model.getUserDefinedMetadata()['label2intInv']
+    label2intInv = {0:"zero", 1:"one", 2:"two", 3:"three", 4:"four",5: "five"}//TODO: await model.getUserDefinedMetadata()['label2intInv']
 
     return model
 }
