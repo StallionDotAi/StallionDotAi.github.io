@@ -1,0 +1,94 @@
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"> </script>
+</head>
+
+<body>
+<input type="file" accept="image/*" onchange="loadFile(event)">
+<img id="output"/>
+<br></br>
+<button id='classify'>Classify</button>
+
+</body>
+
+<script>
+const imgChannel = 1;
+const imgWidth = 28;
+const imgHeight= 28;
+
+const modelURL = "./model/MNIST09.json";
+var model;
+label2intInv = {0:"zero", 1:"one", 2:"two", 3:"three", 4:"four",5: "five"}//TODO: await model.getUserDefinedMetadata()['label2intInv']
+init()
+
+async function init(){
+    model = await loadModel(modelURL);
+    classifyButton = document.getElementById('classify');
+	classifyButton.addEventListener("click", classify);
+}
+
+async function loadModel(modelURL){
+    model= await tf.loadLayersModel(modelURL);
+    return model
+}
+
+var loadFile = function(event) {
+    var reader = new FileReader();
+    reader.onload = function(){
+        var output = document.getElementById('output');
+        output.src = reader.result;
+    };
+    reader.readAsDataURL(event.target.files[0]);
+    };
+
+async function classify(){
+var output = document.getElementById('output');
+const fileURL = output.src ;
+var data = await getImageValue(fileURL);
+
+const predictedClass = tf.tidy(()=>{
+  x0=tf.tensor(data["data"],[data["width"],data["height"],4]);//RGBALPHA and normalize (Assume input is 0 to 255) #TODO: normalize
+  x = x0.slice([0,0,0],[data["width"],data["height"],imgChannel]);//RGB
+  x = tf.image.resizeNearestNeighbor(x, [imgWidth,imgHeight], true);//RGB
+  x=x.expandDims(0).toFloat().div(127).sub(1)
+  x = x.dataSync();
+  x = Array.from(x);
+  x = tf.tensor3d(x,[data["width"],data["height"],imgChannel]).expandDims(0);
+  p = model.predict(x);
+  return p.as1D().argMax();
+
+});
+    const classId = (await predictedClass.data())[0];
+    alert(await label2intInv[classId])
+}
+function getImageValue(url) {
+  return new Promise(async(resolve) => {
+      //const response = await fetch(url);
+      //const blob = await response.blob();
+  
+      var img = new Image();
+      //img.crossOrigin = "anonymous";
+      img.onload = function() {
+          getImageData(img)
+      
+          
+  function getImageData(img){
+      var canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var context = canvas.getContext('2d');
+      context.drawImage(img, 0, 0);
+      var imageData = context.getImageData(0,0,img.width,img.height);
+      var data = imageData.data;
+
+      resolve({'data':Array.from(data),"width":img.width,"height":img.height});
+  }
+}
+img.src=url;
+})
+}     
+</script>
+
+
+</html>
