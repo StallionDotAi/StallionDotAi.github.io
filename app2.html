@@ -40,12 +40,13 @@ fileTag.addEventListener("change", function() {
 
 function changeImage(input) {
   var reader;
-
+  logStatus(" ")
   if (input.files && input.files[0]) {
     reader = new FileReader();
 
     reader.onload = async function(e) {
       preview.setAttribute('src', e.target.result);
+      console.log(e.target.result)
       p = await predictExample(model,e.target.result);
       console.log(p)
       logStatus(messages[p])
