@@ -1,0 +1,1 @@
+{"label2intInv":{"0":"Beaker Tongs","1":"Bunsen Burner","2":"Beaker"},"label2int":{"Beaker Tongs":0,"Bunsen Burner":1,"Beaker":2},"arch":"MobileNet"}

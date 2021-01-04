@@ -1,0 +1,70 @@
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.20/lodash.min.js"></script>
+</head>
+
+<body>
+  <h1>Chemistry Lab Assistant!</h1>
+  <h2>Recognize the names and uses of different objects in your chemistry lab</h2>
+  <input type="file" id="filetag">
+  <p>
+  <img src="" id="preview">
+  <section>
+    <p class='section-head'></p>
+    <p id="status"></p>
+    </section>
+</body>
+<script src="./helpers.js"></script>
+<script>
+const messages = {
+  "Bunsen Burner":"This is a bunsen burner.\nIt is used for heating non-volatile liquids.",
+  'Beaker':"This is a Beaker.\nIt holds solids or liquids.\nIt has poor accuracy and should only be used to estimate volume. ",
+  'Beaker Tongs':"This is a beaker tong.\nIt is used to move beakers containing hot liquids.\nDo not hold this in a burner flame"
+}
+
+
+"This is a Beaker. It holds solids or liquids. It has poor accuracy and should only be used to estimate volume. "
+
+
+
+const statusElement = document.getElementById('status');
+var fileTag = document.getElementById("filetag"),
+preview = document.getElementById("preview");
+function logStatus(message) {statusElement.innerText = message;}
+fileTag.addEventListener("change", function() {
+  changeImage(this);
+});
+
+function changeImage(input) {
+  var reader;
+
+  if (input.files && input.files[0]) {
+    reader = new FileReader();
+
+    reader.onload = async function(e) {
+      preview.setAttribute('src', e.target.result);
+      p = await predictExample(model,e.target.result);
+      console.log(p)
+      logStatus(messages[p])
+    }
+
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+
+
+    
+
+async function init(){
+modelURL = "./model/my-model-1"
+model = await loadModel(modelURL)
+}
+init()
+
+</script>
+
+</html>
