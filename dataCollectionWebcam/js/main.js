@@ -95,7 +95,7 @@ function Start(e){
     (function loop() {
         if (!video.paused && !video.ended ) {
 
-            takePicture(e.id);
+            takePicture(e.target.id);
             timer = setTimeout(loop, 1000 / 20); // drawing at 20fps
         }
     })();
